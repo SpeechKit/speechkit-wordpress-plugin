@@ -62,6 +62,104 @@ class Plugin
     public function __construct()
     {
         $this->apiClient = new ApiClient();
+
+        /**
+         * Register custom post types
+         */
+        add_action( 'init', array( $this, 'init_rsis_publications_post' ) );
+        add_action( 'init', array( $this, 'init_taxonomy_pub_types' ) );
+    }
+
+    public function init_rsis_publications_post() {
+        $labels = array(
+            'name'               => __( 'RSIS Publications' ),
+            'singular_name'      => __( 'RSIS Publication' ),
+            'menu_name'          => __( 'RSIS Publications' ),
+            'name_admin_bar'     => __( 'RSIS Publication' ),
+            'add_new'            => _x( 'Add New', 'RSIS Publication' ),
+            'add_new_item'       => __( 'Add New RSIS Publication' ),
+            'new_item'           => __( 'New RSIS Publication' ),
+            'edit_item'          => __( 'Edit RSIS Publication' ),
+            'view_item'          => __( 'View RSIS Publication' ),
+            'all_items'          => __( 'All RSIS Publications' ),
+            'search_items'       => __( 'Search RSIS Publication' ),
+            'parent_item_colon'  => __( 'Parent RSIS Publications:' ),
+            'not_found'          => __( 'No RSIS Publications found.' ),
+            'not_found_in_trash' => __( 'No RSIS Publications found in Trash.' ),
+        );
+
+        register_post_type('cpt_active', [
+            'graphql_single_name' => 'cptActivePost',
+            'graphql_plural_name' => 'cptActivePosts',
+            'public'              => true,
+            'label'               => 'CPT Active',
+            'show_in_graphql'     => true,
+            'show_in_rest'        => true,
+            'supports'            => ['title', 'editor', 'custom-fields'],
+        ]);
+
+        $args = array(
+            'labels'             => $labels,
+            'public'             => true,
+            'publicly_queryable' => true,
+            'show_ui'            => true,
+            'show_in_menu'       => true,
+            'query_var'          => true,
+            'rewrite'            => array( 'slug' => 'rsis-publication/%entity%' ),
+            // 'capability_type'    => 'rsispub',
+            // 'capabilities'       => array(
+            //     'publish_posts'      => 'publish_rsis_publications',
+            //     'edit_posts'         => 'edit_rsis_publications',
+            //     'edit_others_posts'  => 'edit_others_rsis_publications',
+            //     'read_private_posts' => 'read_private_rsis_publications',
+            //     'edit_post'          => 'edit_rsis_publication',
+            //     'delete_post'        => 'delete_rsis_publication',
+            //     'read_post'          => 'read_rsis_publication',
+            // ),
+            'has_archive'        => true,
+            'hierarchical'       => false,
+            'menu_position'      => null,
+            'supports'           => array( 'title', 'editor', 'author', 'thumbnail', 'revisions','comments', 'custom-fields' ),
+            'taxonomies'         => array('entity', 'pub-types', 'region', 'theme'),
+            'menu_icon' => 'dashicons-media-document'
+        );
+
+        register_post_type( 'rsispub', $args );
+    }
+
+    public function init_taxonomy_pub_types() {
+        $labels = array(
+            'name'              => _x( 'Publication Types', 'taxonomy general name' ),
+            'singular_name'     => _x( 'Publication Type', 'taxonomy singular name' ),
+            'search_items'      => __( 'Search Publication Type' ),
+            'all_items'         => __( 'All Publication Type' ),
+            'parent_item'       => __( 'Parent Publication Type' ),
+            'parent_item_colon' => __( 'Parent Publication Type:' ),
+            'edit_item'         => __( 'Edit Publication Type' ),
+            'update_item'       => __( 'Update Publication Type' ),
+            'add_new_item'      => __( 'Add New Publication Type' ),
+            'new_item_name'     => __( 'New Publication Type Name' ),
+            'menu_name'         => __( 'Publication Types' )
+        );
+
+        $args = array(
+            'hierarchical'      => true,
+            'labels'            => $labels,
+            'show_ui'           => true,
+            'show_admin_column' => false,
+            'query_var'         => true,
+            'rewrite'           => array( 'slug' => 'pub-types' ),
+            'capabilities' => array (
+                'manage_terms'  => 'manage_publication-type',
+                'edit_terms'    => 'edit_publication-type',
+                'delete_terms'  => 'delete_publication-type',
+                'assign_terms'  => 'assign_publication-type'
+            )
+        );
+
+        register_taxonomy('pub-types', null, $args);
+
+        register_taxonomy_for_object_type( 'pub-types', 'rsispub' );
     }
 
     /**

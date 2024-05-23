@@ -329,6 +329,8 @@ class ApiClient
      **/
     public function callApi($request, $postId = false)
     {
+        echo '<pre>'; wp_die($request->getBody());
+
         // Pure
         $args = $this->buildRequestArgs($request);
 
