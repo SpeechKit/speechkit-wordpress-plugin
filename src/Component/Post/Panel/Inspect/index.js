@@ -9,7 +9,6 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import { compose, useCopyToClipboard } from '@wordpress/compose';
-import { useEntityProp } from '@wordpress/core-data';
 import { useDispatch, withDispatch, withSelect } from '@wordpress/data';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { store as noticesStore } from '@wordpress/notices';
@@ -21,6 +20,7 @@ export function PostInspectPanel( {
 	beyondwordsGenerateAudio,
 	beyondwordsContentId,
 	beyondwordsPreviewToken,
+	beyondwordsPlayerContent,
 	beyondwordsPlayerStyle,
 	beyondwordsLanguageId,
 	beyondwordsBodyVoiceId,
@@ -49,7 +49,6 @@ export function PostInspectPanel( {
 	wpVersion,
 	wpPostId,
 	// Other
-	currentPostType,
 	createWarningNotice,
 	removeWarningNotice,
 	setDeleteContent,
@@ -58,6 +57,7 @@ export function PostInspectPanel( {
 	isAutosavingPost,
 } ) {
 	const [ removed, setRemoved ] = useState( false );
+	const { createNotice } = useDispatch( noticesStore );
 
 	useEffect( () => {
 		if ( isSavingPost && ! isAutosavingPost && didPostSaveRequestSucceed ) {
@@ -79,6 +79,7 @@ export function PostInspectPanel( {
 			beyondwords_project_id: beyondwordsProjectId,
 			beyondwords_content_id: beyondwordsContentId,
 			beyondwords_preview_token: beyondwordsPreviewToken,
+			beyondwords_player_content: beyondwordsPlayerContent,
 			beyondwords_player_style: beyondwordsPlayerStyle,
 			beyondwords_language_id: beyondwordsLanguageId,
 			beyondwords_body_voice_id: beyondwordsBodyVoiceId,
@@ -107,52 +108,14 @@ export function PostInspectPanel( {
 		[]
 	);
 
-	const hasBeyondwordsData = Object.values( memoizedMeta ).some(
-		( x ) => !! x?.length
-	);
-
-	function ClipboardToolbarButton( { text, disabled } ) {
-		const { createNotice } = useDispatch( noticesStore );
-		const ref = useCopyToClipboard( text, () => {
-			createNotice( 'info', __( 'Copied data to clipboard.', 'speechkit' ), {
-				isDismissible: true,
-				type: 'snackbar',
-			} );
-		} );
-
-		return (
-			<Button
-				isSecondary
-				id="beyondwords-inspect-copy"
-				ref={ ref }
-				disabled={ disabled }
-				>
-				{ __( 'Copy', 'speechkit' ) }
-			</Button>
-		);
-	}
-
-	const handleRemoveButtonClick = ( e ) => {
-		e.stopPropagation();
-
-		if ( removed ) {
-			setRemoved( false );
-			setDeleteContent( false );
-			removeWarningNotice();
-		} else {
-			setRemoved( true );
-			setDeleteContent( true );
-			createWarningNotice();
-		}
-	};
-
-	const textToCopy =
+	const getTextToCopy = () =>
 		[
 			'```',
 			`beyondwords_generate_audio\r\n${ beyondwordsGenerateAudio }`,
 			`beyondwords_project_id\r\n${ beyondwordsProjectId }`,
 			`beyondwords_content_id\r\n${ beyondwordsContentId }`,
 			`beyondwords_preview_token\r\n${ beyondwordsPreviewToken }`,
+			`beyondwords_player_content\r\n${ beyondwordsPlayerContent }`,
 			`beyondwords_player_style\r\n${ beyondwordsPlayerStyle }`,
 			`beyondwords_language_id\r\n${ beyondwordsLanguageId }`,
 			`beyondwords_body_voice_id\r\n${ beyondwordsBodyVoiceId }`,
@@ -185,6 +148,31 @@ export function PostInspectPanel( {
 			'```',
 		].join( '\r\n\r\n' ) + '\r\n\r\n';
 
+	const copyToClipboardRef = useCopyToClipboard( getTextToCopy(), () => {
+		createNotice( 'info', __( 'Copied data to clipboard.', 'speechkit' ), {
+			isDismissible: true,
+			type: 'snackbar',
+		} );
+	} );
+
+	const hasBeyondwordsData = Object.values( memoizedMeta ).some(
+		( x ) => !! x?.length
+	);
+
+	const handleRemoveButtonClick = ( e ) => {
+		e.stopPropagation();
+
+		if ( removed ) {
+			setRemoved( false );
+			setDeleteContent( false );
+			removeWarningNotice();
+		} else {
+			setRemoved( true );
+			setDeleteContent( true );
+			createWarningNotice();
+		}
+	};
+
 	return (
 		<PanelBody
 			title={ __( 'Inspect', 'speechkit' ) }
@@ -213,6 +201,12 @@ export function PostInspectPanel( {
 				label="beyondwords_content_id"
 				readOnly
 				value={ beyondwordsContentId }
+			/>
+
+			<TextControl
+				label="beyondwords_player_content"
+				readOnly
+				value={ beyondwordsPlayerContent }
 			/>
 
 			<TextControl
@@ -267,10 +261,14 @@ export function PostInspectPanel( {
 
 			<hr />
 
-			<ClipboardToolbarButton
-				text={ textToCopy }
+			<Button
+				id="beyondwords-inspect-copy"
+				variant="secondary"
+				ref={ copyToClipboardRef }
 				disabled={ removed }
-			/>
+			>
+				{ __( 'Copy', 'speechkit' ) }
+			</Button>
 
 			<Button
 				isDestructive
@@ -314,6 +312,8 @@ export default compose( [
 				getEditedPostAttribute( 'meta' ).beyondwords_content_id,
 			beyondwordsPreviewToken:
 				getEditedPostAttribute( 'meta' ).beyondwords_preview_token,
+			beyondwordsPlayerContent:
+				getEditedPostAttribute( 'meta' ).beyondwords_player_content,
 			beyondwordsPlayerStyle:
 				getEditedPostAttribute( 'meta' ).beyondwords_player_style,
 			beyondwordsLanguageId:
